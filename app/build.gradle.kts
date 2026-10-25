@@ -52,7 +52,7 @@ android {
 
     buildTypes {
         debug {
-            ndk { abiFilters += allAbis }
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         }
         release {
             isMinifyEnabled = true
