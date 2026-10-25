@@ -1,5 +1,7 @@
 package io.github.jqssun.airplay.ui
 
+import io.github.jqssun.airplay.ui.theme.glass
+import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -84,6 +86,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .glass(RoundedCornerShape(28.dp))
             .verticalScroll(rememberScrollState())
             .padding(vertical = 8.dp)
     ) {

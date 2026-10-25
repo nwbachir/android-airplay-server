@@ -1,5 +1,9 @@
 package io.github.jqssun.airplay.ui
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import io.github.jqssun.airplay.ui.theme.glass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,8 +44,10 @@ fun LogsScreen(viewModel: MainViewModel) {
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 title = { Text(stringResource(R.string.tab_logs)) },
                 actions = {
                     IconButton(onClick = viewModel::exportLogs, modifier = Modifier.dpadFocus()) {
@@ -54,7 +60,12 @@ fun LogsScreen(viewModel: MainViewModel) {
             )
         },
     ) { padding ->
-        SelectionContainer(Modifier.padding(padding)) {
+        SelectionContainer(
+            Modifier
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .glass(RoundedCornerShape(24.dp))
+        ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),

@@ -1,5 +1,7 @@
 package io.github.jqssun.airplay.ui
 
+import io.github.jqssun.airplay.ui.theme.LocalGlass
+import io.github.jqssun.airplay.ui.theme.glass
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -105,6 +107,11 @@ fun MainScreen(
     val videoSessionPending by viewModel.videoSessionPending.collectAsState()
     val mirroringActive by viewModel.mirroringActive.collectAsState()
     val autoFullscreen by viewModel.pref(Prefs.AUTO_FULLSCREEN).collectAsState()
+
+    // lecteur plein écran à chaque nouvelle session AirPlay audio ; réductible vers les onglets
+    var nowPlayingOpen by remember { mutableStateOf(true) }
+    val audioSession = audioOnly && connections > 0
+    LaunchedEffect(audioSession) { if (audioSession) nowPlayingOpen = true }
 
     // don't use movableContentOf: moving AndroidView across subcomposition boundaries makes it crash on reparent
     val video: @Composable () -> Unit = {
@@ -515,22 +522,46 @@ fun MainScreen(
             onExitFullscreen = { fullscreen = false },
             onPip = onPip
         )
+    } else if (audioSession && nowPlayingOpen) {
+        BackHandler { nowPlayingOpen = false }
+        NowPlayingScreen(viewModel = viewModel, onClose = { nowPlayingOpen = false })
     } else {
+        val glassPalette = LocalGlass.current
         Scaffold(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
-                Column {
+                // barre flottante en verre, au-dessus du fond
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .navigationBarsPadding()
+                        .padding(bottom = 8.dp)
+                ) {
                     AudioMiniController(
                         viewModel,
-                        visible = audioOnly && connections > 0 && tab != Tab.OVERVIEW,
-                        onClick = { tab = Tab.OVERVIEW }
+                        visible = audioOnly && connections > 0,
+                        onClick = { nowPlayingOpen = true }
                     )
-                    NavigationBar {
+                    NavigationBar(
+                        modifier = Modifier.glass(RoundedCornerShape(32.dp), strong = true),
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0)
+                    ) {
                         Tab.entries.forEach { t ->
                             NavigationBarItem(
                                 selected = tab == t,
                                 onClick = { tab = t },
                                 icon = { Icon(t.icon, null) },
                                 label = { Text(stringResource(t.labelRes)) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = glassPalette.indicator,
+                                    selectedIconColor = MaterialTheme.colorScheme.onBackground,
+                                    selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                ),
                                 modifier = Modifier.dpadFocus()
                             )
                         }
@@ -622,8 +653,7 @@ private fun OverviewContent(
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .glass(RoundedCornerShape(28.dp)),
             contentAlignment = Alignment.Center
         ) {
             val connecting = state == ServerState.RUNNING && connections > 0 &&
@@ -705,11 +735,11 @@ private fun OverviewContent(
         }
 
         // controls
-        Card(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+                .padding(16.dp)
+                .glass(RoundedCornerShape(28.dp))
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
@@ -754,7 +784,12 @@ private fun OverviewContent(
                     }
                     FilledTonalButton(
                         onClick = action,
-                        modifier = Modifier.dpadFocus().focusRequester(startFocus)
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.dpadFocus(CircleShape).focusRequester(startFocus)
                     ) {
                         Icon(
                             imageVector = icon,
@@ -1021,7 +1056,7 @@ private fun NowPlayingContent(viewModel: MainViewModel) {
 }
 
 @Composable
-private fun VolumeSlider(
+internal fun VolumeSlider(
     icon: Painter,
     label: String,
     value: Float,
@@ -1061,7 +1096,7 @@ private fun VolumeSlider(
 }
 
 // sender has 16 volume steps above mute
-private const val CLIENT_VOLUME_STEP = 1f / 16
+internal const val CLIENT_VOLUME_STEP = 1f / 16
 
 private const val VIDEO_OVERLAY_HIDE_MS = 4000L
 
